@@ -2452,22 +2452,6 @@
         }
 
 
-        /* ===== Day 頁上方分頁再往下一點 ===== */
-        #page-day-detail .top-tabs-nav {
-            flex-basis: calc(66px + env(safe-area-inset-top, 0px)) !important;
-            height: calc(66px + env(safe-area-inset-top, 0px)) !important;
-            padding-top: calc(env(safe-area-inset-top, 0px) + 20px) !important;
-        }
-
-        @media (max-height: 720px) {
-            #page-day-detail .top-tabs-nav {
-                flex-basis: calc(62px + env(safe-area-inset-top, 0px)) !important;
-                height: calc(62px + env(safe-area-inset-top, 0px)) !important;
-                padding-top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
-            }
-        }
-
-
         /* ===== Day 1~5 滿版旅記精修版：只調視覺，不改資料/功能 ===== */
 
         #page-day-detail .top-tabs-nav {
@@ -4423,6 +4407,53 @@ body #page-day-detail .v6-day-selector::before {
 }
 </style>
 
+
+<style id="directory-equal-scale-final">
+/* 目錄頁固定以 414px 為設計基準；螢幕變窄時，標題、卡片、ICON、文字與間距一起等比縮小。 */
+#view-directory {
+    padding-top: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+}
+
+#view-directory .directory-scale {
+    width: 414px !important;
+    min-width: 414px !important;
+    max-width: 414px !important;
+    margin: 0 auto !important;
+    padding-top: 53px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+    transform-origin: top left;
+    zoom: var(--directory-scale, 1);
+}
+
+/* 保留原本卡片尺寸；整頁縮放時由外層一起縮，不再改卡片比例。 */
+#view-directory .card {
+    height: 365px !important;
+    aspect-ratio: auto !important;
+}
+
+#view-directory .card > img.card-main-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+/* Firefox / 少數不支援 zoom 的瀏覽器 fallback。 */
+@supports not (zoom: 1) {
+    #view-directory .directory-scale {
+        zoom: 1;
+        transform: scale(var(--directory-scale, 1));
+        transform-origin: top left;
+    }
+}
+</style>
+
 </head>
 <body>
 
@@ -4457,6 +4488,7 @@ body #page-day-detail .v6-day-selector::before {
 
         <!-- [2. 目錄頁] -->
         <section id="view-directory" class="view-section">
+            <div class="directory-scale">
             <div class="dir-header">
                 <h2>京阪五日旅記</h2>
                 <span class="index-label">JOURNEY INDEX</span>
@@ -4485,6 +4517,7 @@ body #page-day-detail .v6-day-selector::before {
                 回到旅程起點
                 <span class="btn-arrow">→</span>
             </button>
+            </div>
         </section>
 
         <!-- [3. 航班資訊彈窗] -->
@@ -5923,6 +5956,40 @@ body #page-day-detail .v6-day-selector::before {
       });
     }
     </script>
+
+
+<script id="directory-equal-scale-script">
+(function () {
+    const BASE_WIDTH = 414;
+
+    function updateDirectoryScale() {
+        const directory = document.getElementById('view-directory');
+        const scaler = directory && directory.querySelector('.directory-scale');
+        if (!directory || !scaler) return;
+
+        const availableWidth = directory.clientWidth || window.innerWidth || BASE_WIDTH;
+        const scale = Math.min(1, availableWidth / BASE_WIDTH);
+        scaler.style.setProperty('--directory-scale', scale.toFixed(4));
+
+        /* zoom 會跟著縮排版高度；fallback transform 時補足可捲高度。 */
+        if (!CSS.supports('zoom', '1')) {
+            scaler.style.marginBottom = `${Math.max(0, scaler.scrollHeight * (scale - 1))}px`;
+        }
+    }
+
+    window.addEventListener('resize', updateDirectoryScale, { passive: true });
+    window.addEventListener('orientationchange', updateDirectoryScale, { passive: true });
+    document.addEventListener('DOMContentLoaded', updateDirectoryScale);
+
+    /* 目錄從首頁蓋章轉場顯示時，再量一次實際寬度。 */
+    const observer = new MutationObserver(updateDirectoryScale);
+    document.addEventListener('DOMContentLoaded', function () {
+        const directory = document.getElementById('view-directory');
+        if (directory) observer.observe(directory, { attributes: true, attributeFilter: ['class', 'style'] });
+        requestAnimationFrame(updateDirectoryScale);
+    });
+})();
+</script>
 
 </body>
 </html>
